@@ -162,6 +162,44 @@ void release_TCB(TCB* tcb)
 	Mutex_Unlock(&active_threads_spinlock);
 }
 
+
+TCB* spawn_thread_PTCB(PTCB* ptcb,void (*func)){
+/* The allocated thread size must be a multiple of page size */
+	TCB* tcb = (TCB*)allocate_thread(THREAD_SIZE);
+
+	/* Set the owner */
+	tcb->ptcb = ptcb;
+
+	/* Initialize the other attributes */
+	tcb->type = NORMAL_THREAD;
+	tcb->state = INIT;
+	tcb->phase = CTX_CLEAN;
+	tcb->thread_func = func;
+	tcb->wakeup_time = NO_TIMEOUT;
+	rlnode_init(&tcb->sched_node, tcb); /* Intrusive list node */
+
+	tcb->its = QUANTUM;
+	tcb->rts = QUANTUM;
+	tcb->last_cause = SCHED_IDLE;
+	tcb->curr_cause = SCHED_IDLE;
+
+	/* Compute the stack segment address and size */
+	void* sp = ((void*)tcb) + THREAD_TCB_SIZE;
+
+	/* Init the context */
+	cpu_initialize_context(&tcb->context, sp, THREAD_STACK_SIZE, thread_start);
+
+#ifndef NVALGRIND
+	tcb->valgrind_stack_id = VALGRIND_STACK_REGISTER(sp, sp + THREAD_STACK_SIZE);
+#endif
+
+	/* increase the count of active threads */
+	Mutex_Lock(&active_threads_spinlock);
+	active_threads++;
+	Mutex_Unlock(&active_threads_spinlock);
+
+	return tcb;
+}
 /*
  *
  * Scheduler

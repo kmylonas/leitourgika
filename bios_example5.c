@@ -125,4 +125,5 @@ int main()
 		" 'Type a line', please either start terminals 0 and 1 or kill this process"
 		" (by hitting <Control>-C).\n");
 	vm_boot(bootfunc, 2, 2);
+	return 0;
 }

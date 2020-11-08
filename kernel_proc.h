@@ -17,6 +17,7 @@
 
 #include "tinyos.h"
 #include "kernel_sched.h"
+#include "util.h"
 
 /**
   @brief PID state
@@ -59,8 +60,34 @@ typedef struct process_control_block {
                              @c WaitChild() */
 
   FCB* FIDT[MAX_FILEID];  /**< @brief The fileid table of the process */
+  rlnode ptcb_list;    
+  int thread_count;
 
 } PCB;
+
+
+/**
+  @brief Process Control Block.
+
+  This structure holds all information pertaining to a process.
+ */
+typedef struct process_thread_control_block {
+ TCB* tcb;    /**< @brief pointer that connects PTCB with TCB */
+ Task task;   /**< @brief The thread's function */
+ int argl;
+ void* args;
+
+ int exitval;  /**< @brief the exit value */
+
+//int exides[0,1]; /**< @brief exit flag*/
+ //int detached[0,1];
+ CondVar exit_cv;
+ int refcount;
+
+ rlnode ptcb_list_node;
+
+} PTCB;
+
 
 
 /**

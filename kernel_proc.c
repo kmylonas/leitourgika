@@ -43,6 +43,8 @@ static inline void initialize_PCB(PCB* pcb)
   rlnode_init(& pcb->exited_list, NULL);
   rlnode_init(& pcb->children_node, pcb);
   rlnode_init(& pcb->exited_node, pcb);
+
+  
   pcb->child_exit = COND_INIT;
 }
 
@@ -73,6 +75,21 @@ void initialize_processes()
 }
 
 
+// ptcb initialize
+static PTCB* initialize_ptcb(){
+
+PTCB* ptcb=(PTCB*)xmalloc(sizeof(PTCB));
+ptcb->tcb  = NULL;
+ptcb->task = NULL;
+ptcb->argl = 0;
+ptcb->args = NULL;
+ptcb->exitval = 0;
+ptcb->refcount = 0;
+rlnode_init(&ptcb->ptcb_list_node , ptcb);
+
+return ptcb;
+}
+
 /*
   Must be called with kernel_mutex held
 */
@@ -100,7 +117,6 @@ void release_PCB(PCB* pcb)
   pcb_freelist = pcb;
   process_count--;
 }
-
 
 /*
  *
@@ -179,7 +195,14 @@ Pid_t sys_Exec(Task call, int argl, void* args)
    */
   if(call != NULL) {
     newproc->main_thread = spawn_thread(newproc, start_main_thread);
+    PTCB* ptcb = initialize_ptcb();
+    rlist_push_front(&newproc->ptcb_list, &ptcb->ptcb_list_node);
+    ptcb->tcb = newproc->main_thread ;
+    ptcb->task = newproc->main_task;
+    newproc->main_thread->ptcb = ptcb ;
+    newproc->thread_count++;
     wakeup(newproc->main_thread);
+    
   }
 
 

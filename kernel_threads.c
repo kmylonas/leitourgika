@@ -2,14 +2,33 @@
 #include "tinyos.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
+#include "kernel_proc.c"
+#include "util.h"
+#include "kernel_sched.c"
+
+
+
 
 /** 
   @brief Create a new thread in the current process.
   */
 Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
-	return NOTHREAD;
+  PTCB* ptcb=initialize_ptcb();
+  ptcb->task = task;
+  ptcb->argl = argl;
+  ptcb->args = args;
+  //Task task_=(void*)task;
+ //ptcb->tcb  = spawn_thread_PTCB(ptcb,task_);
+  rlist_push_front(&CURPROC->ptcb_list ,&ptcb->ptcb_list_node);
+  Tid_t tid=(Tid_t)(ptcb->tcb->ptcb);
+  wakeup(ptcb->tcb);
+  return tid;
+
 }
+
+
+
 
 /**
   @brief Return the Tid of the current thread.
