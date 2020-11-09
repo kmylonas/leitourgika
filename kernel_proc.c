@@ -76,7 +76,7 @@ void initialize_processes()
 
 
 // ptcb initialize
-static PTCB* initialize_ptcb(){
+ PTCB* initialize_ptcb(){
 
 PTCB* ptcb=(PTCB*)xmalloc(sizeof(PTCB));
 ptcb->tcb  = NULL;
@@ -140,6 +140,16 @@ void start_main_thread()
   Exit(exitval);
 }
 
+void start_thread(){
+  int exitval;
+  Task call = CURTHREAD->ptcb->task;
+  int argl  = CURTHREAD->ptcb->argl;
+  void* args = CURTHREAD->ptcb->args;
+
+exitval = call(argl,args);
+ThreadExit(exitval);
+
+}
 
 /*
 	System call to create a new process.
@@ -194,8 +204,8 @@ Pid_t sys_Exec(Task call, int argl, void* args)
     the initialization of the PCB.
    */
   if(call != NULL) {
-    newproc->main_thread = spawn_thread(newproc, start_main_thread);
     PTCB* ptcb = initialize_ptcb();
+    newproc->main_thread = spawn_thread(newproc,ptcb, start_main_thread);
     rlist_push_front(&newproc->ptcb_list, &ptcb->ptcb_list_node);
     ptcb->tcb = newproc->main_thread ;
     ptcb->task = newproc->main_task;

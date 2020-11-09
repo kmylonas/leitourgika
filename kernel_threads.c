@@ -2,9 +2,8 @@
 #include "tinyos.h"
 #include "kernel_sched.h"
 #include "kernel_proc.h"
-#include "kernel_proc.c"
 #include "util.h"
-#include "kernel_sched.c"
+
 
 
 
@@ -14,20 +13,25 @@
   */
 Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
+  
   PTCB* ptcb=initialize_ptcb();
   ptcb->task = task;
   ptcb->argl = argl;
   ptcb->args = args;
-  //Task task_=(void*)task;
- //ptcb->tcb  = spawn_thread_PTCB(ptcb,task_);
+  ptcb->tcb  = spawn_thread(CURPROC,ptcb,start_thread);
+   Tid_t tid=(Tid_t)(ptcb->tcb->ptcb);
+   if(tid == 0 || args==NULL){
+     return NOTHREAD;
+   }
+   else
   rlist_push_front(&CURPROC->ptcb_list ,&ptcb->ptcb_list_node);
-  Tid_t tid=(Tid_t)(ptcb->tcb->ptcb);
+  CURPROC->thread_count++;
+  ptcb->tcb->owner_pcb = CURPROC;
   wakeup(ptcb->tcb);
+  
   return tid;
 
 }
-
-
 
 
 /**
@@ -35,7 +39,8 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
  */
 Tid_t sys_ThreadSelf()
 {
-	return (Tid_t) CURTHREAD;
+  Tid_t tid = (Tid_t)(CURTHREAD->ptcb);
+	return tid;
 }
 
 /**
