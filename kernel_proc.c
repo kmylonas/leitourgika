@@ -4,7 +4,6 @@
 #include "kernel_proc.h"
 #include "kernel_streams.h"
 
-
 /* 
  The process table and related system calls:
  - Exec
@@ -39,6 +38,7 @@ static inline void initialize_PCB(PCB* pcb)
   for(int i=0;i<MAX_FILEID;i++)
     pcb->FIDT[i] = NULL;
 
+  rlnode_init(& pcb->ptcb_list, NULL);
   rlnode_init(& pcb->children_list, NULL);
   rlnode_init(& pcb->exited_list, NULL);
   rlnode_init(& pcb->children_node, pcb);
@@ -142,12 +142,13 @@ void start_main_thread()
 
 void start_thread(){
   int exitval;
-  Task call = CURTHREAD->ptcb->task;
-  int argl  = CURTHREAD->ptcb->argl;
-  void* args = CURTHREAD->ptcb->args;
+  TCB* tcb = cur_thread();
+  Task call = tcb->ptcb->task;
+  int argl  = tcb->ptcb->argl;
+  void* args = tcb->ptcb->args;
 
 exitval = call(argl,args);
-ThreadExit(exitval);
+Exit(exitval);
 
 }
 

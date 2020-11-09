@@ -1126,6 +1126,23 @@ BOOT_TEST(test_cyclic_joins,
 	return 0;
 }
 
+BOOT_TEST(test_create_thread,
+	 "Test for create thread"
+	 )
+{
+	int flag = 0;
+
+	int task(int argl, void* args) {
+		ASSERT(args == &flag);
+		*(int*)args = 1;
+		return 2;
+	}
+
+	Tid_t t = CreateThread(task, sizeof(flag), &flag);
+	ASSERT(t!=NOTHREAD);
+	
+	return 0;
+}
 
 TEST_SUITE(thread_tests, 
 	"A suite of tests for threads."
@@ -1140,6 +1157,7 @@ TEST_SUITE(thread_tests,
 	&test_exit_many_threads,
 	&test_nonexit_cleanup,
 	&test_cyclic_joins,
+	&test_create_thread,
 	NULL
 };
 
@@ -2248,6 +2266,7 @@ TEST_SUITE(io_tests,
 {
 	&test_input_concurrency,
 	&test_term_input_driver_interrupt,
+
 	NULL
 };
 

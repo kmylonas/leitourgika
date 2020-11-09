@@ -388,8 +388,8 @@ static inline void rlnode_swap(rlnode_ptr *p, rlnode_ptr *q)
 	@returns the second node, @c b
 */
 static inline rlnode* rl_splice(rlnode *a, rlnode *b)
-{
-  rlnode_swap( &(a->next->prev), &(b->next->prev) );
+{		
+  rlnode_swap( &(a->next->prev), &(b->next->prev) );       
   rlnode_swap( &(a->next), & (b->next) );
   return b;
 }
