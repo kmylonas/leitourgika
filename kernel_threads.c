@@ -18,6 +18,7 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
   ptcb->task = task;
   ptcb->argl = argl;
   ptcb->args = args;
+  
   ptcb->tcb  = spawn_thread(CURPROC,ptcb,start_thread);
    Tid_t tid=(Tid_t)(ptcb->tcb->ptcb);
    if(tid == 0 || args==NULL){
@@ -39,8 +40,12 @@ Tid_t sys_CreateThread(Task task, int argl, void* args)
  */
 Tid_t sys_ThreadSelf()
 {
+<<<<<<< HEAD
   Tid_t tid = (Tid_t)(CURTHREAD->ptcb);
 	return tid;
+=======
+	return (Tid_t) cur_thread();
+>>>>>>> 7c951b6e7a4655f1bddf226142737cec8fd88425
 }
 
 /**
