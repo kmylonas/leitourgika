@@ -85,6 +85,8 @@ ptcb->argl = 0;
 ptcb->args = NULL;
 ptcb->exitval = 0;
 ptcb->refcount = 0;
+ptcb->detached = 0;
+ptcb->exited = 0;
 rlnode_init(&ptcb->ptcb_list_node , ptcb);
 
 return ptcb;

@@ -3,6 +3,7 @@
 #include "kernel_sched.h"
 #include "kernel_proc.h"
 #include "util.h"
+#include "kernel_cc.h"
 
 
 
@@ -46,6 +47,22 @@ Tid_t sys_ThreadSelf()
   */
 int sys_ThreadJoin(Tid_t tid, int* exitval)
 {
+  PCB* curproc = CURPROC;
+  PTCB *ptcb = (PTCB*)tid;
+  rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//ptcb_list_node
+  //Tid_t node_tid = (Tid_t)(node->obj);
+  if(node == NULL){
+    printf("No thread with tid %u found\n", tid);
+    return -1;
+  }
+  while(node->ptcb->exited==0 && node->ptcb->detached==0){//T2 not exited and T2 no detached
+    kernel_wait(node->ptcb->exit_cv, SCHED_USER);//T1 sleeps, it will return here when we broadcast it(in thread exit)
+  }
+  exitval=node->ptcb->exitval;
+  
+
+
+
 	return -1;
 }
 
@@ -54,7 +71,18 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
   */
 int sys_ThreadDetach(Tid_t tid)
 {
-	return -1;
+  PCB* curproc = CURPROC;
+  PTCB *ptcb = (PTCB*)tid;
+  rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//node=ptcb_list_node
+  Tid_t node_tid = (Tid_t)node->obj;
+  if(node->ptcb->detached==1 || node==NULL || node->ptcb->exited==1)
+	  return -1;
+  else
+  {
+    node->ptcb->detached = 1;
+    return 0;
+  }
+  
 }
 
 /**
@@ -62,6 +90,7 @@ int sys_ThreadDetach(Tid_t tid)
   */
 void sys_ThreadExit(int exitval)
 {
-
+  T2->exited=1
+broadcast!!
 }
 

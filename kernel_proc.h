@@ -79,8 +79,8 @@ typedef struct process_thread_control_block {
 
  int exitval;  /**< @brief the exit value */
 
-//int exides[0,1]; /**< @brief exit flag*/
- //int detached[0,1];
+ int exited; /**< @brief exit flag*/
+ int detached;
  CondVar exit_cv;
  int refcount;
 
