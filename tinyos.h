@@ -36,8 +36,6 @@ typedef int Pid_t;		/* The PID type  */
 typedef unsigned long timeout_t;
 
 
-#define MAX_THREADS 34
-
 /** @brief The invalid PID */
 #define NOPROC (-1)
 

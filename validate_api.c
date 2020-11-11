@@ -943,17 +943,14 @@ BOOT_TEST(test_join_illegal_tid_gives_error,
 
 	ASSERT(ThreadJoin(NOTHREAD, illegal_ptr)==-1);
 
-
 	/* Test with random numbers. Since we only have one thread, any call is an illegal call. */
-	for(int i=0; i<5; i++) {
+	for(int i=0; i<100; i++) {
 		Tid_t random_tid = lrand48();
 		ASSERT(ThreadJoin(random_tid, illegal_ptr)==-1);
 	}
 
 	/* In addition, we cannot join ourselves ! */
 	ASSERT(ThreadJoin(ThreadSelf(), illegal_ptr)==-1);
-	
-
 
 	return 0;
 }
@@ -962,7 +959,7 @@ BOOT_TEST(test_join_illegal_tid_gives_error,
 BOOT_TEST(test_detach_illegal_tid_gives_error,
 	"Test that ThreadDetach rejects an illegal Tid")
 {
-	// ASSERT(ThreadDetach(NOTHREAD)==-1);
+	ASSERT(ThreadDetach(NOTHREAD)==-1);
 
 	/* Test with random numbers. Since we only have one thread, any call is an illegal call. */
 	for(int i=0; i<100; i++) {
@@ -1032,10 +1029,10 @@ BOOT_TEST(test_detach_other,
 BOOT_TEST(test_multiple_detach,
 	"Test that a thread can be detached many times.")
 {
-	ASSERT(ThreadDetach(ThreadSelf()));
-	ASSERT(ThreadDetach(ThreadSelf()));
-	ASSERT(ThreadDetach(ThreadSelf()));
-	ASSERT(ThreadDetach(ThreadSelf()));
+	ASSERT(ThreadDetach(ThreadSelf())==0);
+	ASSERT(ThreadDetach(ThreadSelf())==0);
+	ASSERT(ThreadDetach(ThreadSelf())==0);
+	ASSERT(ThreadDetach(ThreadSelf())==0);
 
 	return 0;
 }
@@ -1111,7 +1108,7 @@ BOOT_TEST(test_join_main_thread,
 BOOT_TEST(test_detach_main_thread,
 	"Test that the main thread can be detached")
 {
-	Tid_t mttid = 498;
+	Tid_t mttid;
 
 	int notmain_thread(int argl, void* args) {
 		ASSERT(ThreadJoin(mttid, NULL)==-1);
@@ -1150,7 +1147,7 @@ BOOT_TEST(test_detach_after_join,
 	int joiner_thread(int argl, void* args) {
 		int retval;
 		int rc = ThreadJoin(joined_tid,&retval);
-		ASSERT(rc==-1);
+		ASSERT(rc==0);
 		return 0;
 	}
 

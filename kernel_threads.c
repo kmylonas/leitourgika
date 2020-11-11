@@ -54,8 +54,6 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
   PCB* curproc = CURPROC;
   PTCB *ptcb = (PTCB*)tid;
   rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//ptcb_list_node
-  if(node->ptcb->tcb->owner_pcb != CURPROC)
-    return -1;
   //Tid_t node_tid = (Tid_t)(node->obj);
   if(node == NULL || node->ptcb->detached==1 || node->ptcb->exited==1 || tid == sys_ThreadSelf()){//
     printf("HeheError joining the thread with ID %u\n", tid);
@@ -65,10 +63,15 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
   while(node->ptcb->exited==0 && node->ptcb->detached==0){//T2 not exited and T2 no detached
     kernel_wait(&node->ptcb->exit_cv, SCHED_USER);//T1 sleeps, it will return here when we broadcast it(in thread exit)
   }
-  node->ptcb->refcount--;
-  exitval=&node->ptcb->exitval;
-  if(node->ptcb->refcount==0)
-    free(node->ptcb);
+    node->ptcb->refcount--;
+    exitval=&node->ptcb->exitval;
+  if(node->ptcb->detached == 1){
+    if(node->ptcb->refcount==0){
+      rlist_remove(&node->ptcb->ptcb_list_node);
+      free(node->ptcb);
+      }
+      return -1; 
+  }  
 	return 0;
   
 }
@@ -85,9 +88,9 @@ int sys_ThreadDetach(Tid_t tid)
   rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//node=ptcb_list_node
   if(node==NULL)
     return -1;
-  Tid_t node_tid = (Tid_t)node->ptcb;
-  if(node->ptcb->detached==1 || node->ptcb->exited==1)
+  if(node->ptcb->exited==1){
 	  return -1;
+  }
   else
   {
     node->ptcb->detached = 1;
@@ -163,12 +166,15 @@ void sys_ThreadExit(int exitval)
   kernel_sleep(EXITED, SCHED_USER);
 
  }//END COPY EXIT
- if(curthread->ptcb->refcount==0){
-   free(curthread->ptcb);
- }
+ 
 curthread->ptcb->exitval = exitval;
+curthread->ptcb->exited = 1;
 curproc->thread_count--;
 kernel_broadcast(&curthread->ptcb->exit_cv);
+if(curthread->ptcb->refcount==0){
+   rlist_remove(&curthread->ptcb->ptcb_list_node);
+   free(curthread->ptcb);
+ }
   /* Bye-bye cruel world */
 kernel_sleep(EXITED, SCHED_USER);
 }
