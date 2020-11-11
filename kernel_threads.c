@@ -46,12 +46,16 @@ Tid_t sys_ThreadSelf()
   @brief Join the given thread.
   */
 int sys_ThreadJoin(Tid_t tid, int* exitval)
-{
-  // if(tid=!ThreadSelf())
-  //   printf("Im different"); 
+{ 
+  if(tid==sys_ThreadSelf())
+    return -1; 
+  if(tid == NOTHREAD)
+    return -1;
   PCB* curproc = CURPROC;
   PTCB *ptcb = (PTCB*)tid;
   rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//ptcb_list_node
+  if(node->ptcb->tcb->owner_pcb != CURPROC)
+    return -1;
   //Tid_t node_tid = (Tid_t)(node->obj);
   if(node == NULL || node->ptcb->detached==1 || node->ptcb->exited==1 || tid == sys_ThreadSelf()){//
     printf("HeheError joining the thread with ID %u\n", tid);
@@ -101,10 +105,12 @@ void sys_ThreadExit(int exitval)
 
   PCB* curproc = CURPROC;
   TCB* curthread = cur_thread();
+  
  //COPY FROM EXIT
  if(curproc->thread_count==1){
     /* Reparent any children of the exiting process to the 
        initial task */
+    
     PCB* initpcb = get_pcb(1);
     while(!is_rlist_empty(& curproc->children_list)) {
       rlnode* child = rlist_pop_front(& curproc->children_list);
@@ -118,16 +124,21 @@ void sys_ThreadExit(int exitval)
       rlist_append(& initpcb->exited_list, &curproc->exited_list);
       kernel_broadcast(& initpcb->child_exit);
     }
-
+    if(get_pid(curproc)!=1){
     /* Put me into my parent's exited list */
     rlist_push_front(& curproc->parent->exited_list, &curproc->exited_node);
     kernel_broadcast(& curproc->parent->child_exit);
-
+    }
   
 
   assert(is_rlist_empty(& curproc->children_list));
   assert(is_rlist_empty(& curproc->exited_list));
-d list */
+
+
+  /* 
+    Do all the other cleanup we want here, close files etc. 
+   */
+
   /* Release the args data */
   if(curproc->args) {
     free(curproc->args);
@@ -148,6 +159,8 @@ d list */
   /* Now, mark the process as exited. */
   curproc->pstate = ZOMBIE;
 
+  /* Bye-bye cruel world */
+  kernel_sleep(EXITED, SCHED_USER);
 
  }//END COPY EXIT
  if(curthread->ptcb->refcount==0){
