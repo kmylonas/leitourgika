@@ -1,0 +1,6 @@
+list addr 0x555555588298 <-- node addr 0x7ffff0000c38 which points at(node->obj) 0x7ffff0000bf0 = ptcb
+
+list addr 0x555555588298
+
+
+

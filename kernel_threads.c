@@ -14,17 +14,17 @@
   */
 Tid_t sys_CreateThread(Task task, int argl, void* args)
 {
-  
+  PCB* curproc = CURPROC;
   PTCB* ptcb=initialize_ptcb();
   ptcb->task = task;
   ptcb->argl = argl;
   ptcb->args = args;
   
-  ptcb->tcb  = spawn_thread(CURPROC,ptcb,start_thread);
+  ptcb->tcb  = spawn_thread(curproc,ptcb,start_thread);
   Tid_t tid=(Tid_t)(ptcb->tcb->ptcb);
 
-  rlist_push_front(&CURPROC->ptcb_list ,&ptcb->ptcb_list_node);
-  CURPROC->thread_count++;
+  rlist_push_front(&curproc->ptcb_list ,&ptcb->ptcb_list_node);
+  curproc->thread_count++;
   
   wakeup(ptcb->tcb);
   
@@ -51,9 +51,16 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
     return -1; 
   if(tid == NOTHREAD)
     return -1;
+  
   PCB* curproc = CURPROC;
   PTCB *ptcb = (PTCB*)tid;
   rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//ptcb_list_node
+  if(node->ptcb->exited==1){  //if its exited we take exitval and return. We mustnt let it go for kernel_sleep because its exited and nobody will wake it up
+    exitval = &node->ptcb->exitval;
+    rlist_remove(&node->ptcb->ptcb_list_node);
+    free(node->ptcb);
+    return 0;
+  }
   //Tid_t node_tid = (Tid_t)(node->obj);
   if(node == NULL || node->ptcb->detached==1 || node->ptcb->exited==1 || tid == sys_ThreadSelf()){//
     printf("HeheError joining the thread with ID %u\n", tid);
@@ -64,14 +71,7 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
     kernel_wait(&node->ptcb->exit_cv, SCHED_USER);//T1 sleeps, it will return here when we broadcast it(in thread exit)
   }
     node->ptcb->refcount--;
-    exitval=&node->ptcb->exitval;
-  if(node->ptcb->detached == 1){
-    if(node->ptcb->refcount==0){
-      rlist_remove(&node->ptcb->ptcb_list_node);
-      free(node->ptcb);
-      }
-      return -1; 
-  }  
+    exitval=&node->ptcb->exitval; 
 	return 0;
   
 }
@@ -109,6 +109,14 @@ void sys_ThreadExit(int exitval)
   PCB* curproc = CURPROC;
   TCB* curthread = cur_thread();
   
+  rlnode* list = &curthread->owner_pcb->ptcb_list;
+  while (rlist_len(list)>0){
+    rlist_remove(list->next);
+    free(list->next->ptcb);
+  }
+ 
+
+
  //COPY FROM EXIT
  if(curproc->thread_count==1){
     /* Reparent any children of the exiting process to the 
@@ -156,26 +164,42 @@ void sys_ThreadExit(int exitval)
     }
   }
 
+
+
+  
+  
+
   /* Disconnect my main_thread */
-  curproc->main_thread = NULL;
+  //curproc->main_thread = NULL;
 
   /* Now, mark the process as exited. */
   curproc->pstate = ZOMBIE;
 
   /* Bye-bye cruel world */
   kernel_sleep(EXITED, SCHED_USER);
+ 
 
  }//END COPY EXIT
- 
-curthread->ptcb->exitval = exitval;
-curthread->ptcb->exited = 1;
-curproc->thread_count--;
-kernel_broadcast(&curthread->ptcb->exit_cv);
-if(curthread->ptcb->refcount==0){
-   rlist_remove(&curthread->ptcb->ptcb_list_node);
-   free(curthread->ptcb);
+ if(curthread->ptcb->detached==1){//we delete ptcb because its detached and there's no way any thread would join it in the future.
+  curthread->ptcb->exitval = exitval;
+  curthread->ptcb->exited = 1;
+  curproc->thread_count--;
+  rlist_remove(&curthread->ptcb->ptcb_list_node);
+  free(curthread->ptcb);
+ }
+ else if(curthread->ptcb->refcount !=0){//we dont delete ptcb because maybe another thread wants to join it later and get its exitval.
+  curthread->ptcb->exitval = exitval;
+  curthread->ptcb->exited = 1;
+  curproc->thread_count--;
+  kernel_broadcast(&curthread->ptcb->exit_cv);
+ }
+ else if(curthread->ptcb->refcount == 0){//we dont delete ptcb because maybe another thread wants to join it later and get its exitval.
+  curthread->ptcb->exitval = exitval;
+  curthread->ptcb->exited = 1;
+  curproc->thread_count--;
  }
   /* Bye-bye cruel world */
 kernel_sleep(EXITED, SCHED_USER);
+
 }
 

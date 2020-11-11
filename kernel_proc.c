@@ -35,6 +35,7 @@ static inline void initialize_PCB(PCB* pcb)
   pcb->pstate = FREE;
   pcb->argl = 0;
   pcb->args = NULL;
+  pcb->thread_count = 0;
 
   for(int i=0;i<MAX_FILEID;i++)
     pcb->FIDT[i] = NULL;
@@ -88,6 +89,7 @@ ptcb->exitval = 0;
 ptcb->refcount = 0;
 ptcb->detached = 0;
 ptcb->exited = 0;
+ptcb->exit_cv = COND_INIT;
 rlnode_init(&ptcb->ptcb_list_node , ptcb);
 
 return ptcb;
@@ -209,11 +211,11 @@ Pid_t sys_Exec(Task call, int argl, void* args)
    */
   if(call != NULL) {
     PTCB* ptcb = initialize_ptcb();
-    newproc->main_thread = spawn_thread(newproc,ptcb, start_main_thread);
+    ptcb->tcb = spawn_thread(newproc, ptcb, start_main_thread);
     rlist_push_front(&newproc->ptcb_list, &ptcb->ptcb_list_node);
-    ptcb->tcb = newproc->main_thread ;
     ptcb->task = newproc->main_task;
-    newproc->main_thread->ptcb = ptcb ;
+    ptcb->argl = newproc->argl;
+    ptcb->args = newproc->args;
     newproc->thread_count++;
     wakeup(ptcb->tcb);
     
