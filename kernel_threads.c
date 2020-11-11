@@ -55,6 +55,8 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
   PCB* curproc = CURPROC;
   PTCB *ptcb = (PTCB*)tid;
   rlnode* node = rlist_find(&curproc->ptcb_list, ptcb, NULL);//ptcb_list_node
+  if(node == NULL )
+    return -1;
   if(node->ptcb->exited==1){  //if its exited we take exitval and return. We mustnt let it go for kernel_sleep because its exited and nobody will wake it up
     exitval = &node->ptcb->exitval;
     rlist_remove(&node->ptcb->ptcb_list_node);
@@ -62,7 +64,7 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
     return 0;
   }
   //Tid_t node_tid = (Tid_t)(node->obj);
-  if(node == NULL || node->ptcb->detached==1 || node->ptcb->exited==1 || tid == sys_ThreadSelf()){//
+  if(node->ptcb->detached==1 || node->ptcb->exited==1 || tid == sys_ThreadSelf()){//
     printf("HeheError joining the thread with ID %u\n", tid);
     return -1;
   }
@@ -109,12 +111,7 @@ void sys_ThreadExit(int exitval)
   PCB* curproc = CURPROC;
   TCB* curthread = cur_thread();
   
-  rlnode* list = &curthread->owner_pcb->ptcb_list;
-  while (rlist_len(list)>0){
-    rlist_remove(list->next);
-    free(list->next->ptcb);
-  }
- 
+
 
 
  //COPY FROM EXIT
@@ -122,6 +119,14 @@ void sys_ThreadExit(int exitval)
     /* Reparent any children of the exiting process to the 
        initial task */
     
+    rlnode* list = &curthread->owner_pcb->ptcb_list;
+  while (rlist_len(list)>0){
+    rlist_remove(list->next);
+    free(list->next->ptcb);
+  }
+ 
+
+
     PCB* initpcb = get_pcb(1);
     while(!is_rlist_empty(& curproc->children_list)) {
       rlnode* child = rlist_pop_front(& curproc->children_list);
