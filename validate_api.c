@@ -1263,9 +1263,9 @@ BOOT_TEST(test_cyclic_joins,
 	int join_thread(int argl, void* args) {
 		BarrierSync(&B, N+1);
 		ThreadJoin(tids[argl], NULL);
+
 		return argl;
 	}
-
 	/* spawn all N threads */
 	for(unsigned int i=0;i<N;i++) {
 		tids[i] = CreateThread(join_thread, (i+1)%N, NULL);
@@ -1278,9 +1278,10 @@ BOOT_TEST(test_cyclic_joins,
 	/* Now, threads are in deadlock! To break the deadlock,
 	   detach thread 0. */
 	ThreadDetach(tids[0]);
+	sleep_thread(1);
 	/* To make sure that other threads escape deadlock, join them! */
 	for(unsigned int i=1; i<N; i++)
-		ASSERT(ThreadJoin(tids[i], NULL)==0);	
+		ASSERT(ThreadJoin(tids[i], NULL));	
 
 	return 0;
 }
