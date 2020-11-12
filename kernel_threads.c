@@ -73,7 +73,16 @@ int sys_ThreadJoin(Tid_t tid, int* exitval)
     kernel_wait(&node->ptcb->exit_cv, SCHED_USER);//T1 sleeps, it will return here when we broadcast it(in thread exit)
   }
     node->ptcb->refcount--;
-    exitval=&node->ptcb->exitval; 
+    if(exitval!=NULL){
+    (*exitval)=node->ptcb->exitval; 
+    }
+    else
+    {
+      exitval=&node->ptcb->exitval;
+    }
+    
+    if(node->ptcb->detached==1)
+      return -1;
 	return 0;
   
 }
@@ -185,24 +194,18 @@ void sys_ThreadExit(int exitval)
  
 
  }//END COPY EXIT
- if(curthread->ptcb->detached==1){//we delete ptcb because its detached and there's no way any thread would join it in the future.
   curthread->ptcb->exitval = exitval;
   curthread->ptcb->exited = 1;
   curproc->thread_count--;
+ if(curthread->ptcb->detached==1){//we delete ptcb because its detached and there's no way any thread would join it in the future.
   rlist_remove(&curthread->ptcb->ptcb_list_node);
   free(curthread->ptcb);
  }
  else if(curthread->ptcb->refcount !=0){//we dont delete ptcb because maybe another thread wants to join it later and get its exitval.
-  curthread->ptcb->exitval = exitval;
-  curthread->ptcb->exited = 1;
-  curproc->thread_count--;
+
   kernel_broadcast(&curthread->ptcb->exit_cv);
  }
- else if(curthread->ptcb->refcount == 0){//we dont delete ptcb because maybe another thread wants to join it later and get its exitval.
-  curthread->ptcb->exitval = exitval;
-  curthread->ptcb->exited = 1;
-  curproc->thread_count--;
- }
+
   /* Bye-bye cruel world */
 kernel_sleep(EXITED, SCHED_USER);
 

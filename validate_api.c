@@ -1061,13 +1061,13 @@ BOOT_TEST(test_join_many_threads,
 		return 0;
 	}
 
-	Tid_t tids[5];
-	for(int i=0;i<5;i++) {
+	Tid_t tids[1];
+	for(int i=0;i<1;i++) {
 		tids[i] = CreateThread(joiner_thread,0,NULL);
 		ASSERT(tids[i]!=NOTHREAD);
 	}
 
-	for(int i=0;i<5;i++) {
+	for(int i=0;i<1;i++) {
 		ASSERT(ThreadJoin(tids[i], NULL)==0);
 		/* tids[i] should be cleaned by ThreadJoin */
 		ASSERT(ThreadDetach(tids[i])==-1);
